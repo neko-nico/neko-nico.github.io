@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neko Docs Cloud</title>
+    <style>
+      :root {
+        --bg: #f5f7fb;
+        --surface: #ffffff;
+        --surface-soft: #f7f9ff;
+        --text: #101828;
+        --muted: #667085;
+        --line: #e4e7ec;
+        --primary: #4f46e5;
+        --primary-soft: #eef2ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
+        color: var(--text);
+        background: radial-gradient(circle at top right, #eef2ff 0%, var(--bg) 40%);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        border-right: 1px solid var(--line);
+        background: var(--surface);
+        padding: 24px;
+      }
+
+      .brand {
+        margin: 0 0 10px;
+        font-size: 22px;
+      }
+
+      .sub {
+        margin: 0 0 20px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .stats {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      .stat {
+        border: 1px solid var(--line);
+        background: var(--surface-soft);
+        border-radius: 12px;
+        padding: 12px;
+      }
+
+      .stat .k {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .stat .v {
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .tree-title {
+        margin: 0 0 8px;
+        font-size: 15px;
+      }
+
+      .tree,
+      .tree ul {
+        margin: 0;
+        padding-left: 16px;
+        list-style: none;
+      }
+
+      .tree li {
+        margin: 4px 0;
+      }
+
+      .folder {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .doc-button {
+        width: 100%;
+        text-align: left;
+        border: 0;
+        background: transparent;
+        color: var(--text);
+        border-radius: 8px;
+        cursor: pointer;
+        padding: 6px 8px;
+        font-size: 14px;
+      }
+
+      .doc-button:hover,
+      .doc-button.active {
+        background: var(--primary-soft);
+        color: var(--primary);
+      }
+
+      .main {
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        border-radius: 14px;
+        padding: 12px;
+      }
+
+      .toolbar label {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .toolbar select,
+      .toolbar input[type="range"] {
+        margin-left: 6px;
+      }
+
+      .reader {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        border-radius: 14px;
+        overflow: hidden;
+        min-height: 70vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .reader-head {
+        border-bottom: 1px solid var(--line);
+        padding: 12px 16px;
+        background: #fafbff;
+      }
+
+      .reader-head h2 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .reader-head p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .reader-content {
+        padding: 20px;
+        overflow: auto;
+        line-height: 1.7;
+        font-size: 16px;
+      }
+
+      .reader-content pre {
+        background: #111827;
+        color: #f8fafc;
+        border-radius: 10px;
+        padding: 12px;
+        overflow: auto;
+      }
+
+      .placeholder {
+        color: var(--muted);
+        display: grid;
+        place-items: center;
+        height: 100%;
+        text-align: center;
+      }
+
+      .pdf-frame {
+        border: 0;
+        width: 100%;
+        min-height: 72vh;
+      }
+
+      @media (max-width: 960px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <h1 class="brand">Neko Docs Cloud</h1>
+        <p class="sub">现代化只读文档中心，随时在线阅读</p>
+
+        <div class="stats">
+          <div class="stat"><div class="k">文档总数</div><div class="v" id="doc-count">0</div></div>
+          <div class="stat"><div class="k">目录层级</div><div class="v" id="folder-count">0</div></div>
+        </div>
+
+        <h2 class="tree-title">云端文档结构</h2>
+        <div id="tree-root"></div>
+      </aside>
+
+      <main class="main">
+        <div class="toolbar">
+          <label>
+            字体
+            <select id="font-family">
+              <option value="Inter, PingFang SC, Microsoft YaHei, sans-serif">默认无衬线</option>
+              <option value="Georgia, Times New Roman, serif">衬线阅读</option>
+              <option value="Consolas, Menlo, monospace">等宽字体</option>
+            </select>
+          </label>
+          <label>
+            字号
+            <input id="font-size" type="range" min="14" max="24" value="16" />
+            <span id="font-size-value">16px</span>
+          </label>
+          <label>
+            行高
+            <input id="line-height" type="range" min="1.4" max="2.2" step="0.1" value="1.7" />
+            <span id="line-height-value">1.7</span>
+          </label>
+          <span style="margin-left:auto;color:#667085;font-size:13px">文档均为只读模式</span>
+        </div>
+
+        <section class="reader">
+          <div class="reader-head">
+            <h2 id="reader-title">请选择左侧文档开始阅读</h2>
+            <p id="reader-meta">支持 .txt / .md / .pdf</p>
+          </div>
+          <div class="reader-content" id="reader-content">
+            <div class="placeholder">点击任意文档进入在线阅读模式</div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const storageTree = {
+        name: "root",
+        children: [
+          {
+            type: "folder",
+            name: "notes",
+            children: [
+              {
+                type: "file",
+                name: "weekly-plan.md",
+                path: "documents/notes/weekly-plan.md",
+                updatedAt: "2026-06-24",
+              },
+            ],
+          },
+          {
+            type: "folder",
+            name: "journal",
+            children: [
+              {
+                type: "file",
+                name: "today.txt",
+                path: "documents/journal/today.txt",
+                updatedAt: "2026-06-24",
+              },
+            ],
+          },
+          {
+            type: "folder",
+            name: "reference",
+            children: [
+              {
+                type: "file",
+                name: "guide.pdf",
+                path: "documents/reference/guide.pdf",
+                updatedAt: "2026-06-24",
+              },
+            ],
+          },
+        ],
+      };
+
+      const treeRoot = document.getElementById("tree-root");
+      const readerTitle = document.getElementById("reader-title");
+      const readerMeta = document.getElementById("reader-meta");
+      const readerContent = document.getElementById("reader-content");
+
+      const fontFamily = document.getElementById("font-family");
+      const fontSize = document.getElementById("font-size");
+      const fontSizeValue = document.getElementById("font-size-value");
+      const lineHeight = document.getElementById("line-height");
+      const lineHeightValue = document.getElementById("line-height-value");
+
+      function countNodes(node) {
+        let docs = 0;
+        let folders = 0;
+        if (!node.children) return { docs, folders };
+
+        for (const child of node.children) {
+          if (child.type === "folder") {
+            folders += 1;
+            const nested = countNodes(child);
+            docs += nested.docs;
+            folders += nested.folders;
+          }
+
+          if (child.type === "file") docs += 1;
+        }
+
+        return { docs, folders };
+      }
+
+      function renderTree(node, container) {
+        const list = document.createElement("ul");
+        list.className = "tree";
+
+        for (const child of node.children || []) {
+          const item = document.createElement("li");
+          if (child.type === "folder") {
+            const folder = document.createElement("div");
+            folder.className = "folder";
+            folder.textContent = `📁 ${child.name}`;
+            item.appendChild(folder);
+            renderTree(child, item);
+          } else {
+            const button = document.createElement("button");
+            button.className = "doc-button";
+            button.textContent = `📄 ${child.name}`;
+            button.addEventListener("click", () => openDocument(child, button));
+            item.appendChild(button);
+          }
+          list.appendChild(item);
+        }
+
+        container.appendChild(list);
+      }
+
+      function escapeHtml(text) {
+        return text
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function markdownToHtml(markdown) {
+        const escaped = escapeHtml(markdown);
+        const lines = escaped.split("\n");
+        const html = [];
+        let inList = false;
+        let inCode = false;
+
+        for (const line of lines) {
+          if (line.startsWith("```")) {
+            if (!inCode) {
+              html.push("<pre><code>");
+              inCode = true;
+            } else {
+              html.push("</code></pre>");
+              inCode = false;
+            }
+            continue;
+          }
+
+          if (inCode) {
+            html.push(`${line}\n`);
+            continue;
+          }
+
+          if (/^\s*[-*]\s+/.test(line)) {
+            if (!inList) {
+              html.push("<ul>");
+              inList = true;
+            }
+            html.push(`<li>${line.replace(/^\s*[-*]\s+/, "")}</li>`);
+            continue;
+          }
+
+          if (inList) {
+            html.push("</ul>");
+            inList = false;
+          }
+
+          if (/^\s*$/.test(line)) {
+            html.push("<br />");
+          } else if (/^###\s+/.test(line)) {
+            html.push(`<h3>${line.replace(/^###\s+/, "")}</h3>`);
+          } else if (/^##\s+/.test(line)) {
+            html.push(`<h2>${line.replace(/^##\s+/, "")}</h2>`);
+          } else if (/^#\s+/.test(line)) {
+            html.push(`<h1>${line.replace(/^#\s+/, "")}</h1>`);
+          } else if (/^>\s+/.test(line)) {
+            html.push(`<blockquote>${line.replace(/^>\s+/, "")}</blockquote>`);
+          } else {
+            const inline = line
+              .replace(/`([^`]+)`/g, "<code>$1</code>")
+              .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+              .replace(/\*([^*]+)\*/g, "<em>$1</em>");
+            html.push(`<p>${inline}</p>`);
+          }
+        }
+
+        if (inList) html.push("</ul>");
+        if (inCode) html.push("</code></pre>");
+
+        return html.join("\n");
+      }
+
+      async function openDocument(file, button) {
+        document.querySelectorAll(".doc-button").forEach((el) => el.classList.remove("active"));
+        button.classList.add("active");
+
+        readerTitle.textContent = file.name;
+        readerMeta.textContent = `${file.path} · 更新于 ${file.updatedAt} · 只读`;
+        readerContent.innerHTML = '<div class="placeholder">加载中...</div>';
+
+        const ext = file.name.split(".").pop().toLowerCase();
+
+        if (ext === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.className = "pdf-frame";
+          iframe.src = file.path;
+          iframe.title = file.name;
+          readerContent.innerHTML = "";
+          readerContent.appendChild(iframe);
+          return;
+        }
+
+        try {
+          const response = await fetch(file.path);
+          if (!response.ok) throw new Error("读取失败");
+          const text = await response.text();
+
+          if (ext === "md") {
+            readerContent.innerHTML = markdownToHtml(text);
+          } else {
+            readerContent.innerHTML = `<pre>${escapeHtml(text)}</pre>`;
+          }
+        } catch (error) {
+          readerContent.innerHTML = `<div class="placeholder">文档加载失败：${escapeHtml(String(error.message || error))}</div>`;
+        }
+
+        applyReadingStyle();
+      }
+
+      function applyReadingStyle() {
+        readerContent.style.fontFamily = fontFamily.value;
+        readerContent.style.fontSize = `${fontSize.value}px`;
+        readerContent.style.lineHeight = lineHeight.value;
+        fontSizeValue.textContent = `${fontSize.value}px`;
+        lineHeightValue.textContent = lineHeight.value;
+      }
+
+      fontFamily.addEventListener("change", applyReadingStyle);
+      fontSize.addEventListener("input", applyReadingStyle);
+      lineHeight.addEventListener("input", applyReadingStyle);
+
+      const counts = countNodes(storageTree);
+      document.getElementById("doc-count").textContent = counts.docs;
+      document.getElementById("folder-count").textContent = counts.folders;
+      renderTree(storageTree, treeRoot);
+      applyReadingStyle();
+    </script>
+  </body>
+</html>
